@@ -14,6 +14,8 @@ Text Domain: arrayschool
 // } );
 
 
+/* ------------- OPTIONS PAGE -------------*/
+//add menu page
 add_action("admin_menu", "array_admin_page"); 
 function array_admin_page()
 {
@@ -25,35 +27,23 @@ function array_admin_page()
         "array_admin_page_output"
     );
 }
+
+//options page output
 function array_admin_page_output()
 {
-    ?>
-    <div class="wrap">
-        <h1>Array Settings</h1>
-
-        <form method="post" action="options.php">
-            <?php settings_fields('admin-setting-group');?>
-            <label>Application Start Date<br><input type="date" name="application_date_start" value="<?php echo get_option("application_date_start"); ?>"></label><br>
-            <label>Application End Date<br><input type="date" name="application_date_end" value="<?php echo get_option("application_date_end"); ?>"></label><br>
-            <label>Message <br>
-                <textarea name="message" rows="10" cols="80"></textarea>
-            </label>
-            <?php submit_button();?>
-        </form>
-    </div>
-    <?php 
+    require_once __DIR__ . '/options-template.php'; 
 }
 
+//regsiter settings
 add_action("admin_init", "register_array_admin_page_settings");
 function register_array_admin_page_settings()
 {
-    $application_group_name = "application_info";
-    register_setting("admin_settings_group", "application_date_start");
-    register_setting("admin-settings-group", "application_date_end");
-    register_setting("admin-settings-group", "message");
-
+    register_setting("array-settings", "application_date_start");
+    register_setting("array-settings", "application_date_end");
+    register_setting("array-settings", "application_message");
 }
 
+/*----------- Enqueue Scripts ----------*/
 add_action("admin_enqueue_scripts", "array_plugin_scripts");
 function array_plugin_scripts() 
 {
