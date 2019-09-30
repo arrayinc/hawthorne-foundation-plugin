@@ -9,9 +9,46 @@ License: GPLv2 or later
 Text Domain: arrayschool
 */
 
-// add_filter("materialis_header_title", function ($title){
-//     return "Apply for our Scholarship!";
-// } );
+/* --- Front page update based on date  --- */
+
+add_filter("materialis_header_title", function ($title){ 
+    if(is_front_page() && (is_spring_application_period() || is_fall_application_period())) {
+        return "Apply for our Scholarship!";
+    }
+    return $title;
+} );
+
+function is_spring_application_period()
+{
+    $return_value = false;
+    $application_open = get_option("spring_application_date_start", null);
+    $application_close = get_option("spring_application_date_end", null);
+    if($application_open && $application_close) {
+        $today = new DateTime();
+        $application_open = new DateTime($application_open);
+        $application_close = new DateTime($application_close);
+        if($today >= $application_open && $today <= $application_close) {
+            $return_value = true;
+        }
+    }
+    return $return_value;
+}
+
+function is_fall_application_period()
+{
+    $return_value_fall = false;
+    $fall_ap_open = get_option("fall_application_date_start", null);
+    $fall_ap_close = get_option("fall_application_date_end", null);
+    if($fall_ap_open && $fall_ap_close) {
+        $today = new DateTime();
+        $fall_ap_open = new DateTime($fall_ap_open);
+        $fall_ap_close = new DateTime($fall_ap_close);
+        if($today >= $fall_ap_open && $today <= $fall_ap_close) {
+            $return_value_fall = true;
+        }
+    }
+    return $return_value_fall;
+}
 
 
 /* ------------- OPTIONS PAGE -------------*/
@@ -38,8 +75,10 @@ function array_admin_page_output()
 add_action("admin_init", "register_array_admin_page_settings");
 function register_array_admin_page_settings()
 {
-    register_setting("array-settings", "application_date_start");
-    register_setting("array-settings", "application_date_end");
+    register_setting("array-settings", "spring_application_date_start");
+    register_setting("array-settings", "spring_application_date_end");
+    register_setting("array-settings", "fall_application_date_start");
+    register_setting("array-settings", "fall_application_date_end");
     register_setting("array-settings", "application_message");
 }
 
@@ -50,11 +89,14 @@ function array_plugin_scripts()
     wp_enqueue_style("array-styles", plugin_dir_url(__FILE__) . "/admin-style.css", []);
 }
 
-add_action("wp_enqueue_scripts", "array_plugin_frontend_scripts");
+add_action("wp_enqueue_scripts", "array_plugin_frontend_scripts", 99);
 function array_plugin_frontend_scripts() 
 {
     wp_enqueue_style("array-frontend-styles", plugin_dir_url(__FILE__) . "/styles.css", []);
 }
+
+
+/*--- Testimonials custom posts page -----*/
 
 add_action("widgets_init", "create_testimonials_sidebar_widget");
 function create_testimonials_sidebar_widget() 

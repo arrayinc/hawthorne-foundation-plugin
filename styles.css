@@ -32,3 +32,26 @@
     padding: 0px 15px !important;
     border-radius: 2px !important;
 }
+
+.gform_wrapper input:not([type=radio]):not([type=checkbox]):not([type=submit]):not([type=button]):not([type=image]):not([type=file]) {
+    padding: 9px;
+}
+
+.address_country select, .ginput_container input:not([type=submit]):not([type=checkbox]):not([type=file]) {
+    background-color: rgba(0,0,0,.01);
+    border: solid 1px #CCCCCC;
+}
+
+.ginput_container_fileupload input[type=file] {
+    border-bottom: none !important;
+}
+
+select {
+    padding: 6px !important;
+    background-position: right 2px bottom 11px; 
+}
+
+textarea {
+    background-color: rgba(0,0,0,.01);
+    border: solid 1px #CCCCCC !important;
+}
