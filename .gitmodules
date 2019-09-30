@@ -1,0 +1,3 @@
+[submodule "members"]
+	path = members
+	url = https://github.com/justintadlock/members.git
