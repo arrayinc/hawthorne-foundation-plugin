@@ -2,6 +2,9 @@
 
 final class Array_Membership_Types
 {
+
+    private $restricted_message = "Sorry, you are not allowed to view this content.";
+
     public static function get_instance()
     {
         static $instance = null;
@@ -25,13 +28,6 @@ final class Array_Membership_Types
         __doing_it_wrong(__FUNCTION__ , esc_html__("That's not how you do it"));
     }
 
-    public function __call($method = '', $args = array())
-    {
-        __doing_it_wrting("Array_Membership_Types::{$method}", esc_html__("Method does not exist"));
-        unset($method, $args);
-        return null;
-    }
-
     private function setup()
     {
         if(is_null(get_role('applicant'))){
@@ -51,6 +47,45 @@ final class Array_Membership_Types
             $role->add_cap('read');
             $role->add_cap('level_0');
         }
+
+        add_shortcode('members', array($this, 'restrict_content_shortcode'));
+    }
+
+    public function restrict_content_shortcode($atts, $content = null)
+    {
+        extract(shortcode_atts(
+            array('type' => 'all'),
+            $atts
+        ));
+
+        switch(strtolower($type)){
+            case 'applicant':
+                if (!current_user_can('applicant') || !current_user_can('administrator')){
+                    $content = $this->restricted_message;
+                }
+                break;
+            case 'recipient':
+                if (!curent_user_can('recipient') || !current_user_can('administrator')){
+                    $content = $this->restricted_message;
+                }
+                break;
+            case 'parter':
+                if (!current_user_can('partner') || !current_user_can('administrator')){
+                    $content = $this->restricted_message;
+                }
+                break;
+            case 'all':
+                if (!current_user_can('administrator')){
+                    $content = $this->restricted_message;
+                }
+                break;
+            default:
+                $content = $this->restricted_message;
+                break;
+        }
+
+        return $content;
+
     }
 }
 
