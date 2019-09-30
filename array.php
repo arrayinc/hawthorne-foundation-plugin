@@ -9,6 +9,8 @@ License: GPLv2 or later
 Text Domain: arrayschool
 */
 
+require_once __DIR__ . '/includes/class-membership-types.php';
+
 /* --- Front page update based on date  --- */
 
 add_filter("materialis_header_title", function ($title){ 
