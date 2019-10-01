@@ -9,6 +9,7 @@ License: GPLv2 or later
 Text Domain: arrayschool
 */
 
+require_once __DIR__ . '/includes/class-array-membership-types.php';
 /* --- Front page update based on date  --- */
 
 add_filter("materialis_header_title", function ($title){ 
@@ -80,6 +81,9 @@ function register_array_admin_page_settings()
     register_setting("array-settings", "fall_application_date_start");
     register_setting("array-settings", "fall_application_date_end");
     register_setting("array-settings", "application_message");
+    register_setting("array-settings", "user_creation_form");
+    register_setting("array-settings", "user_creation_form_username");
+    register_setting("array-settings", "user_creation_form_email");
 }
 
 /*----------- Enqueue Scripts ----------*/
@@ -132,4 +136,160 @@ function load_testimonials_template($page_template)
         $page_template = __DIR__ . "/page-testimonials.php";
     }
     return $page_template;
+}
+
+function gravity_forms_select(string $id)
+{
+    //EARLY OUT: Check to make sure Gravity Forms is installed
+    if(!class_exists('GFAPI')){
+        echo "Gravity Forms Is Not Installed";
+        return;
+    }
+
+    $forms              = GFAPI::get_forms();
+    $selected_form_id   = get_option('user_creation_form');
+    $selected_username  = get_option('user_creation_form_username');
+    $selected_email     = get_option('user_creation_form_email');
+    $selected_form      = $selected_form_id ? GFAPI::get_form($selected_form_id) : false;
+    $form_fields        = $selected_form ? GFAPI::get_fields_by_type($selected_form, array('name', 'email')) : []; 
+    ?>
+    <script>
+        jQuery(document).ready(function(){
+            jQuery('#<?php echo $id; ?>').change(function(){
+                //EARLY OUT: make sure that value is present
+                if (jQuery(this).val() === ''){
+                    return;
+                }
+                jQuery.ajax(
+                    {
+                        method: 'GET',
+                        url: '<?php echo get_admin_url(null, 'admin-post.php?action=gf_field_select&form_id='); ?>' + jQuery(this).val(),
+                    })
+                    .done(function(response, statusText, jqxhr){
+                        if (response.status = 200) {
+                            var json = jQuery.parseJSON(response);
+                            buildSelects(json.fields);
+                        } else {
+                            alert("Something went wrong. Please contact your developer. FILE: <?php echo __FILE__; ?>. LINE: <?php echo __LINE__; ?>");
+                        }
+                    })
+                    .fail(function(){
+                        console.log('fail');
+                    });
+            });
+
+        });
+
+        function buildSelects(fields){
+            jQuery('.gf-form-field-select').each(function(){
+                var select = this;
+
+                while(this.hasChildNodes()){
+                    this.removeChild(this.lastChild);
+                }
+
+                fields.forEach(function(field){
+                    var option = document.createElement('option');
+                    option.value = field.id;
+                    option.innerText = field.label;
+                    select.appendChild(option);
+                });
+                select.parentNode.classList.remove('hidden');
+            });
+        }
+    </script>
+    <p><label for="<?php echo $id; ?>">Form</label></p>
+    <select name="<?php echo $id; ?>" id="<?php echo $id; ?>">
+        <option value=""></option>
+    <?php foreach($forms as $form) : ?>
+        <option value="<?php echo $form['id']; ?>" <?php selected(get_option('user_creation_form'), $form['id']); ?>>
+            <?php echo $form['title']; ?>
+        </option> 
+    <?php endforeach; ?>
+    </select>
+    <div class="<?php echo $selected_username ? '' : 'hidden'; ?>">
+        <p><label for="<?php echo $id . '_username'; ?>">Username Form Field</label></p>
+        <select name="<?php echo $id . '_username'; ?>" id="<?php echo $id . '_username'; ?>" class="gf-form-field-select">
+        <?php foreach($form_fields as $field) : ?>
+        <option value="<?php echo $field['id']; ?>" <?php selected(get_option('user_creation_form_username'), $field['id']); ?>>
+            <?php echo $field['label']; ?>
+        </option> 
+        <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="<?php echo $selected_email ? '' : 'hidden'; ?>">
+        <p><label for="<?php echo $id . '_email'; ?>">Email Form Field</label></p>
+        <select name="<?php echo $id . '_email'; ?>" id="<?php echo $id . '_email'; ?>" class="gf-form-field-select">
+        <?php foreach($form_fields as $field) : ?>
+        <option value="<?php echo $field['id']; ?>" <?php selected(get_option('user_creation_form_email'), $field['id']); ?>>
+            <?php echo $field['label']; ?>
+        </option> 
+        <?php endforeach; ?>
+        </select>
+    </div>
+    <?php
+}
+
+add_action('admin_post_gf_field_select', 'gravity_form_field_select');
+add_action('admin_post_nopriv_gf_field_select', 'gravity_form_field_select');
+function gravity_form_field_select()
+{
+    $status = 200;
+    $status_message = 'Request successful';
+
+    //EARLY OUT: Check to make sure Gravity Forms is installed
+    if(!class_exists('GFAPI')){
+        $status = 400;
+        $status_message = 'Gravity Forms is not installed';
+        die(json_encode(array('status' => $status, 'status message' => $status_message)));
+    }
+
+    $form_id = $_REQUEST['form_id'] ?? false;
+
+    //EARLY OUT: Check if form id was passed in the request
+    if(!$form_id){
+        $status = 400;
+        $status_message = 'Form ID required';
+        die(json_encode(array('status' => $status, 'status message' => $status_message)));
+    }
+
+    $form = GFAPI::get_form($form_id);
+
+    //EARLY OUT: Check if form requested exists
+    if(!$form) {
+        $status = 400;
+        $status_message = "Form ID {$form_id} does not exist";
+        die(json_encode(array('status' => $status, 'status message' => $status_message)));
+    }
+
+    $form_fields = GFAPI::get_fields_by_type($form, array('name', 'email'));
+    die(json_encode(array('status' => $status, 'status message' => $status_message, 'fields' => $form_fields)));
+
+}
+
+add_action('gform_after_submission', 'try_create_user', 10, 2);
+function try_create_user($entry, $form)
+{
+    $selected_form_id   = get_option('user_creation_form');
+    //EARLY OUT: not the form we are looking for
+    if (intval($selected_form_id) !== $form['id']) {
+        return;
+    }
+
+    require_once __DIR__ . '/includes/class-array-user.php';
+    $selected_username  = get_option('user_creation_form_username');
+    $selected_email     = get_option('user_creation_form_email');
+    $username           = rgar($entry, $selected_username . '.3') . '_' .rgar($entry, $selected_username . '.6');
+    $email              = rgar($entry, $selected_email);
+
+    $user = new Array_User('applicant');
+    try{
+        $user->create($username, $email);
+    }
+    catch(Exception $e)
+    {
+        //send email to site admin
+        wp_mail(bloginfo('admin_email'), "Application Error. Form ID: {$form['id']}", $e->getMessage());
+    }
+    
 }
