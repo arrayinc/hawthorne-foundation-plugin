@@ -51,7 +51,7 @@ final class Array_Membership_Types
         add_shortcode('members', array($this, 'restrict_content_shortcode'));
     }
 
-    public function restrict_content_shortcode($atts, $content = null)
+    public function restrict_content_shortcode($atts, $content = '')
     {
         extract(shortcode_atts(
             array('type' => 'all'),
