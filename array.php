@@ -88,6 +88,7 @@ function register_array_admin_page_settings()
     register_setting("array-settings", "user_creation_form");
     register_setting("array-settings", "user_creation_form_username");
     register_setting("array-settings", "user_creation_form_email");
+    register_setting("array-settings", "supplemental_form");
 }
 
 /*----------- Enqueue Scripts ----------*/
@@ -183,7 +184,7 @@ function restrict_content_shortcode($atts, $content = '')
 }
 
 /* ------------- GRAVITY FORMS MODS -------------*/
-function gravity_forms_select(string $id)
+function gravity_forms_selects()
 {
     //EARLY OUT: Check to make sure Gravity Forms is installed
     if(!class_exists('GFAPI')){
@@ -200,7 +201,7 @@ function gravity_forms_select(string $id)
     ?>
     <script>
         jQuery(document).ready(function(){
-            jQuery('#<?php echo $id; ?>').change(function(){
+            jQuery('#user_creation_form').change(function(){
                 //EARLY OUT: make sure that value is present
                 if (jQuery(this).val() === ''){
                     return;
@@ -243,18 +244,18 @@ function gravity_forms_select(string $id)
             });
         }
     </script>
-    <p><label for="<?php echo $id; ?>">Form</label></p>
-    <select name="<?php echo $id; ?>" id="<?php echo $id; ?>">
+    <p><label for="user_creation_form">Form</label></p>
+    <select name="user_creation_form" id="user_creation_form">
         <option value=""></option>
-    <?php foreach($forms as $form) : ?>
+        <?php foreach($forms as $form) : ?>
         <option value="<?php echo $form['id']; ?>" <?php selected(get_option('user_creation_form'), $form['id']); ?>>
             <?php echo $form['title']; ?>
         </option> 
-    <?php endforeach; ?>
+        <?php endforeach; ?>
     </select>
     <div class="<?php echo $selected_username ? '' : 'hidden'; ?>">
-        <p><label for="<?php echo $id . '_username'; ?>">Username Form Field</label></p>
-        <select name="<?php echo $id . '_username'; ?>" id="<?php echo $id . '_username'; ?>" class="gf-form-field-select">
+        <p><label for="user_creation_form_username">Username Form Field</label></p>
+        <select name="user_creation_form_username" id="user_creation_form_username" class="gf-form-field-select">
         <?php foreach($form_fields as $field) : ?>
         <option value="<?php echo $field['id']; ?>" <?php selected(get_option('user_creation_form_username'), $field['id']); ?>>
             <?php echo $field['label']; ?>
@@ -263,8 +264,8 @@ function gravity_forms_select(string $id)
         </select>
     </div>
     <div class="<?php echo $selected_email ? '' : 'hidden'; ?>">
-        <p><label for="<?php echo $id . '_email'; ?>">Email Form Field</label></p>
-        <select name="<?php echo $id . '_email'; ?>" id="<?php echo $id . '_email'; ?>" class="gf-form-field-select">
+        <p><label for="user_creation_form_email">Email Form Field</label></p>
+        <select name="user_creation_form_email" id="user_creation_form_email" class="gf-form-field-select">
         <?php foreach($form_fields as $field) : ?>
         <option value="<?php echo $field['id']; ?>" <?php selected(get_option('user_creation_form_email'), $field['id']); ?>>
             <?php echo $field['label']; ?>
@@ -272,11 +273,36 @@ function gravity_forms_select(string $id)
         <?php endforeach; ?>
         </select>
     </div>
+    <p><label for="supplemental_form">Form</label></p>
+    <select name="supplemental_form" id="supplemental_form">
+        <option value=""></option>
+        <?php foreach($forms as $form) : ?>
+        <option value="<?php echo $form['id']; ?>" <?php selected(get_option('supplemental_form'), $form['id']); ?>>
+            <?php echo $form['title']; ?>
+        </option> 
+        <?php endforeach; ?>
+    </select>
+    <div>
+        <h2>How To Prefill Form Fields</h2>
+        <ol>
+            <li>In Gravity Forms plugin, select the form you wish to have prefilled.</li>
+            <li>Select the field you wish to prefill by clicking on the small triangle next to the field name.</li>
+            <li>Select the advanced tab.</li>
+            <li>Check the box labeled 'Allow field to be populated dynamically'.</li>
+            <li>
+                In the resulting dropdown, add one of the following identifiers:
+                <ol>
+                    <li>first_name (to prefill field with current user first name)</li>
+                    <li>last_name (to prefill field with current user last name)</li>
+                    <li>email (to prefill field with current user email)</li>
+                </ol>
+            </li>
+        </ol>  
+    </div>
     <?php
 }
 
 add_action('admin_post_gf_field_select', 'gravity_form_field_select');
-add_action('admin_post_nopriv_gf_field_select', 'gravity_form_field_select');
 function gravity_form_field_select()
 {
     $status = 200;
@@ -341,6 +367,44 @@ function try_create_user($entry, $form)
         wp_mail(bloginfo('admin_email'), "Application Error. Form ID: {$form['id']}", $e->getMessage());
     }
     
+}
+
+add_filter('gform_field_value_first_name', 'prefill_supplemental_form', 10, 3);
+add_filter('gform_field_value_last_name', 'prefill_supplemental_form', 10, 3);
+add_filter('gform_field_value_user_email', 'prefill_supplemental_form', 10, 3);
+function prefill_supplemental_form($value, $field, $name)
+{
+    $user = wp_get_current_user();
+    $value = '';
+    switch($name){
+        case 'first_name':
+            $value = get_user_meta($user->ID, 'first_name', true);
+            break;
+        case 'last_name';
+            $value = get_user_meta($user->ID, 'last_name', true);
+            break;
+        case 'user_email';
+            $value = $user->user_email;
+            break;
+        default:
+            break;
+    }
+
+    return $value;
+}
+
+add_filter('gform_shortcode_form', 'limit_access_to_forms', 10, 3);
+function limit_access_to_forms($string, $attributes, $content)
+{
+    if (intval($attributes['id']) === intval(get_option('supplemental_form', 0)))
+    {
+        $user = wp_get_current_user();
+        if (in_array('recipient', $user->roles) && in_array('administrator', $user->roles)){
+            $string = '<p>Please log in to view this form<p>' . wp_login_form(array('echo'=> false));
+        }
+    }
+
+    return $string;
 }
 
 /*---------- USER MANAGEMENT ----------*/
