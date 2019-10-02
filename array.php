@@ -324,12 +324,16 @@ function try_create_user($entry, $form)
     require_once __DIR__ . '/includes/class-array-user.php';
     $selected_username  = get_option('user_creation_form_username');
     $selected_email     = get_option('user_creation_form_email');
-    $username           = rgar($entry, $selected_username . '.3') . '_' .rgar($entry, $selected_username . '.6');
+    $first_name         = trim(rgar($entry, $selected_username . '.3'));
+    $last_name          = trim(rgar($entry, $selected_username . '.6'));
+    $username           = $first_name . '_' . $last_name;
     $email              = rgar($entry, $selected_email);
 
     $user = new Array_User('applicant');
     try{
-        $user->create($username, $email);
+        $created_user = $user->create($username, $email);
+        update_user_meta($created_user, 'first_name', $first_name);
+        update_user_meta($created_user, 'last_name', $last_name);
     }
     catch(Exception $e)
     {
