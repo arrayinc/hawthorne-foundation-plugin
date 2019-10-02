@@ -19,7 +19,7 @@ final class Array_User
         }
 
         $user = new WP_User($new_user);
-        $user->add_role($this->role);
+        $user->set_role($this->role);
 
         wp_new_user_notification($new_user, null, 'both');
 

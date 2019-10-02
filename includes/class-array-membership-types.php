@@ -3,14 +3,25 @@
 final class Array_Membership_Types
 {
 
-    private $restricted_message = "Sorry, you are not allowed to view this content.";
+    /**
+     * Custom User Types
+     *
+     * Key: Name used in UI
+     * Value: Slug used for role look up
+     * 
+     * @var array
+     */
+    private static $types = array(
+        'Applicant' => 'applicant',
+        'Recipient' => 'recipient',
+        'Partner'   => 'parter'
+    );
 
     public static function get_instance()
     {
         static $instance = null;
         if (is_null($instance)){
             $instance = new self;
-            $instance->setup();
         }
 
         return $instance;
@@ -28,65 +39,49 @@ final class Array_Membership_Types
         __doing_it_wrong(__FUNCTION__ , esc_html__("That's not how you do it"));
     }
 
-    private function setup()
+    public static function init()
     {
-        if(is_null(get_role('applicant'))){
-            $role = add_role('applicant', 'Applicant');
-            $role->add_cap('read');
-            $role->add_cap('level_0');
+        foreach(static::$types as $name => $slug){
+            if(is_null(get_role($slug))){
+                $role = add_role($slug, $name);
+                $role->add_cap('read');
+            }
         }
-
-        if(is_null(get_role('recipient'))){
-            $role = add_role('recipient', 'Recipient');
-            $role->add_cap('read');
-            $role->add_cap('level_0');
-        }
-
-        if(is_null(get_role('partner'))){
-            $role = add_role('partner', 'Partner');
-            $role->add_cap('read');
-            $role->add_cap('level_0');
-        }
-
-        add_shortcode('members', array($this, 'restrict_content_shortcode'));
     }
 
-    public function restrict_content_shortcode($atts, $content = '')
+    public static function deinit()
     {
-        extract(shortcode_atts(
-            array('type' => 'all'),
-            $atts
-        ));
+        static::reassign_users();
+        static::remove_roles();
+    }
 
-        switch(strtolower($type)){
-            case 'applicant':
-                if (!current_user_can('applicant') || !current_user_can('administrator')){
-                    $content = $this->restricted_message;
-                }
-                break;
-            case 'recipient':
-                if (!curent_user_can('recipient') || !current_user_can('administrator')){
-                    $content = $this->restricted_message;
-                }
-                break;
-            case 'parter':
-                if (!current_user_can('partner') || !current_user_can('administrator')){
-                    $content = $this->restricted_message;
-                }
-                break;
-            case 'all':
-                if (!current_user_can('administrator')){
-                    $content = $this->restricted_message;
-                }
-                break;
-            default:
-                $content = $this->restricted_message;
-                break;
+    private static function reassign_users()
+    {
+        $query = new WP_User_Query(
+            array(
+                'role__in' => array_values(static::$types)
+            )
+        );
+
+        $users = $query->get_results();
+
+        //EARLY OUT: No users match criteria
+        if (empty($users)){
+            return;
         }
 
-        return $content;
+        foreach($users as $user){
+            $user->set_role('subscriber');
+        }
+    }
 
+    private static function remove_roles()
+    {
+        foreach(static::$types as $type){
+            $role = get_role($type);
+            remove_role($type);
+        }
     }
 }
 
-Array_Membership_Types::get_instance();
+return Array_Membership_Types::get_instance();
