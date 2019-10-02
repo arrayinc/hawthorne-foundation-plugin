@@ -9,7 +9,10 @@ License: GPLv2 or later
 Text Domain: arrayschool
 */
 
-require_once __DIR__ . '/includes/class-array-membership-types.php';
+$plugin_init = require_once __DIR__ . '/includes/class-array-membership-types.php';
+
+register_activation_hook(__FILE__, array(get_class($plugin_init), 'init'));
+register_deactivation_hook(__FILE__, array(get_class($plugin_init), 'deinit'));
 /* --- Front page update based on date  --- */
 
 add_filter("materialis_header_title", function ($title){ 
@@ -58,11 +61,12 @@ add_action("admin_menu", "array_admin_page");
 function array_admin_page()
 {
     add_menu_page(
-        "Array Settings", 
-        "Array Settings", 
+        "Scholarship Settings", 
+        "Scholarship Settings", 
         "administrator",
         "array-settings",
-        "array_admin_page_output"
+        "array_admin_page_output",
+        "dashicons-welcome-learn-more"
     );
 }
 
@@ -138,6 +142,47 @@ function load_testimonials_template($page_template)
     return $page_template;
 }
 
+add_shortcode('members', 'restrict_content_shortcode');
+function restrict_content_shortcode($atts, $content = '')
+{
+    extract(shortcode_atts(
+        array('type' => 'all'),
+        $atts
+    ));
+
+    $login_form = '<h3>Please login to view content</h3>' . wp_login_form(array('echo' => false));
+
+    switch(strtolower($type)){
+        case 'applicant':
+            if (!current_user_can('applicant') || !current_user_can('administrator')){
+                $content = $login_form;
+            }
+            break;
+        case 'recipient':
+            if (!curent_user_can('recipient') || !current_user_can('administrator')){
+                $content = $login_form;
+            }
+            break;
+        case 'parter':
+            if (!current_user_can('partner') || !current_user_can('administrator')){
+                $content = $login_form;
+            }
+            break;
+        case 'all':
+            if (!current_user_can('administrator')){
+                $content = $login_form;
+            }
+            break;
+        default:
+            $content = $login_form;
+            break;
+    }
+
+    return $content;
+
+}
+
+/* ------------- GRAVITY FORMS MODS -------------*/
 function gravity_forms_select(string $id)
 {
     //EARLY OUT: Check to make sure Gravity Forms is installed
@@ -292,4 +337,75 @@ function try_create_user($entry, $form)
         wp_mail(bloginfo('admin_email'), "Application Error. Form ID: {$form['id']}", $e->getMessage());
     }
     
+}
+
+/*---------- USER MANAGEMENT ----------*/
+add_filter('bulk_actions-users', 'email_selected_users');
+function email_selected_users($actions){
+    $actions['email-all'] = 'Email All';
+    return $actions;
+}
+
+add_filter('handle_bulk_actions-users', 'handle_email_selected_users', 10, 3);
+function handle_email_selected_users($redirect_to, $action, $user_ids)
+{
+    //EARLY OUT: make sure we are handling the correct action
+    if ($action !== 'email-all'){
+        return $redirect_to;
+    }
+
+    $mailto = 'mailto:';
+    $user_emails = [];
+
+    foreach($user_ids as $user_id){
+        $user = get_userdata($user_id);
+        $user_emails[] = $user->user_email;
+    }
+
+    $mailto .= implode(',', $user_emails);
+
+    header("location: $mailto");
+
+    die();
+}
+
+add_action('set_user_role', 'add_date_scholarship_awarded', 10, 3);
+function add_date_scholarship_awarded($user_id, $role, $old_role)
+{
+    //EARLY OUT: make sure we are acting when new role is recipient
+    if($role !== 'recipient'){
+        return;
+    }
+
+    update_user_meta($user_id, 'date_scholarship_awarded', current_time('mysql'));
+}
+
+add_filter('manage_users_columns', 'date_scholarhip_awarded_column');
+function date_scholarhip_awarded_column($columns){
+
+    $role = $_REQUEST['role'] ?? false;
+
+    //EARLY OUT: only add column if role is filtered
+    if ($role !== 'recipient') {
+        return $columns;
+    }
+
+    if ($role != false) {
+        unset($columns['posts']);
+    }
+
+    $columns['date_scholarship_awarded'] = 'Scholarship Date';
+    return $columns; 
+}
+
+add_filter('manage_users_custom_column', 'populate_scholarship_date_column', 10, 3);
+function populate_scholarship_date_column($output, $column_name, $user_id)
+{
+    if($column_name === 'date_scholarship_awarded'){
+        $date_string = get_user_meta($user_id, 'date_scholarship_awarded', true);
+        $date = new DateTime($date_string);
+        $output = $date->format('Y-m-d');
+    }
+
+    return $output;
 }
