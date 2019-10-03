@@ -88,7 +88,6 @@ function register_array_admin_page_settings()
     register_setting("array-settings", "user_creation_form");
     register_setting("array-settings", "user_creation_form_username");
     register_setting("array-settings", "user_creation_form_email");
-    register_setting("array-settings", "supplemental_form");
 }
 
 /*----------- Enqueue Scripts ----------*/
@@ -179,7 +178,7 @@ function restrict_content_shortcode($atts, $content = '')
             break;
     }
 
-    return $content;
+    return do_shortcode($content);
 
 }
 
@@ -244,6 +243,8 @@ function gravity_forms_selects()
             });
         }
     </script>
+    <h2>Create New Applicant Settings</h2>
+    <h4>Select the form, username and email fields that will be used to create a new user when the form is submitted</h4>
     <p><label for="user_creation_form">Form</label></p>
     <select name="user_creation_form" id="user_creation_form">
         <option value=""></option>
@@ -273,15 +274,6 @@ function gravity_forms_selects()
         <?php endforeach; ?>
         </select>
     </div>
-    <p><label for="supplemental_form">Form</label></p>
-    <select name="supplemental_form" id="supplemental_form">
-        <option value=""></option>
-        <?php foreach($forms as $form) : ?>
-        <option value="<?php echo $form['id']; ?>" <?php selected(get_option('supplemental_form'), $form['id']); ?>>
-            <?php echo $form['title']; ?>
-        </option> 
-        <?php endforeach; ?>
-    </select>
     <div>
         <h2>How To Prefill Form Fields</h2>
         <ol>
@@ -294,7 +286,7 @@ function gravity_forms_selects()
                 <ol>
                     <li>first_name (to prefill field with current user first name)</li>
                     <li>last_name (to prefill field with current user last name)</li>
-                    <li>email (to prefill field with current user email)</li>
+                    <li>user_email (to prefill field with current user email)</li>
                 </ol>
             </li>
         </ol>  
@@ -391,20 +383,6 @@ function prefill_supplemental_form($value, $field, $name)
     }
 
     return $value;
-}
-
-add_filter('gform_shortcode_form', 'limit_access_to_forms', 10, 3);
-function limit_access_to_forms($string, $attributes, $content)
-{
-    if (intval($attributes['id']) === intval(get_option('supplemental_form', 0)))
-    {
-        $user = wp_get_current_user();
-        if (in_array('recipient', $user->roles) && in_array('administrator', $user->roles)){
-            $string = '<p>Please log in to view this form<p>' . wp_login_form(array('echo'=> false));
-        }
-    }
-
-    return $string;
 }
 
 /*---------- USER MANAGEMENT ----------*/
