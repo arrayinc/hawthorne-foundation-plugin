@@ -14,7 +14,7 @@ final class Array_Membership_Types
     private static $types = array(
         'Applicant' => 'applicant',
         'Recipient' => 'recipient',
-        'Partner'   => 'parter'
+        'Partner'   => 'partner'
     );
 
     public static function get_instance()

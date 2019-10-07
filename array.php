@@ -166,7 +166,7 @@ function restrict_content_shortcode($atts, $content = '')
                 $content = $login_form;
             }
             break;
-        case 'parter':
+        case 'partner':
             if (!current_user_can('partner') && !current_user_can('administrator')){
                 $content = $login_form;
             }
