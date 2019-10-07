@@ -22,6 +22,23 @@ add_filter("materialis_header_title", function ($title){
     return $title;
 } );
 
+add_filter("materialis_print_buttons_list_button", "show_one_button", 10, 3);
+function show_one_button($button, $setting, $index)
+{
+    //EARLY OUT: only change button if setting is header buttons
+    if (!$setting === 'header_content_buttons'){
+        return $button;
+    }
+
+    if($index == 1){
+        if(is_front_page() && (!is_spring_application_period() && !is_fall_application_period())) {
+            $button['class'] = $button['class'] . ' array-hidden';
+        }
+    }
+
+    return $button;
+}
+
 function is_spring_application_period()
 {
     $return_value = false;
