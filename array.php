@@ -150,21 +150,24 @@ function restrict_content_shortcode($atts, $content = '')
         $atts
     ));
 
+    $user = wp_get_current_user();
+    error_log(serialize($user->roles));
+
     $login_form = '<h3>Please login to view content</h3>' . wp_login_form(array('echo' => false));
 
     switch(strtolower($type)){
         case 'applicant':
-            if (!current_user_can('applicant') || !current_user_can('administrator')){
+            if (!current_user_can('applicant') && !current_user_can('administrator')){
                 $content = $login_form;
             }
             break;
         case 'recipient':
-            if (!curent_user_can('recipient') || !current_user_can('administrator')){
+            if (!current_user_can('recipient') && !current_user_can('administrator')){
                 $content = $login_form;
             }
             break;
         case 'parter':
-            if (!current_user_can('partner') || !current_user_can('administrator')){
+            if (!current_user_can('partner') && !current_user_can('administrator')){
                 $content = $login_form;
             }
             break;
