@@ -4,6 +4,10 @@
     color: #3E7127!important;
 }
 
+.fixto-fixed ul.dropdown-menu.simple-text-buttons>li:not(.current-menu-item):not(.current_page_item):hover>a{
+    color: #3E7127 !important;
+}
+
 /* FORMS */
 .gf_progressbar_wrapper .gf_progressbar {
     border-radius: 0px;
@@ -63,4 +67,10 @@ textarea {
 
 .array-hidden {
     display: none;
+}
+
+@media screen and (min-width: 1024px){
+    div#gform_drag_drop_area_1_96 {
+        max-width: 33%;
+    }
 }
