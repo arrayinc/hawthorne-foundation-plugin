@@ -70,7 +70,7 @@ textarea {
 }
 
 @media screen and (min-width: 1024px){
-    div#gform_drag_drop_area_1_96 {
+    .array-file-field {
         max-width: 33%;
     }
 }
