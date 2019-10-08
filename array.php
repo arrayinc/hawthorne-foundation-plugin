@@ -22,6 +22,42 @@ add_filter("materialis_header_title", function ($title){
     return $title;
 } );
 
+add_action('init', function(){
+    remove_action("materialis_print_header_content", 'materialis_print_header_content_subtitle', 1);
+});
+add_action("materialis_print_header_content", 'array_print_header_content_subtitle', 1);
+function array_print_header_content_subtitle()
+{
+    ob_start();
+    materialis_print_header_subtitle();
+    $subtitle = ob_get_clean();
+    if(is_front_page() && (is_spring_application_period() || is_fall_application_period())) {
+        $begin_date = false;
+        $end_date = false;
+        $period = is_spring_application_period() ? 
+            'spring_application_date_' :
+            'fall_application_date_';
+        $date_string = '';
+
+        $begin_date_string = get_option("{$period}start", false);
+        $begin_date =  $begin_date_string !== false ?
+            new DateTime($begin_date_string) :
+            false;
+        $end_date_string = get_option("{$period}end", false);
+        $end_date =  $end_date_string !== false ?
+            new DateTime($end_date_string) :
+            false;
+
+        if ($begin_date && $end_date){
+            $date_string = "Application Period: {$begin_date->format('F j')} - {$end_date->format('F j')}";
+            $subtitle = "<p class=\"header-subtitle\">{$date_string}</p>";
+        }
+        
+    }
+
+    echo $subtitle;
+}
+
 add_filter("materialis_print_buttons_list_button", "show_one_button", 10, 3);
 function show_one_button($button, $setting, $index)
 {
@@ -33,6 +69,8 @@ function show_one_button($button, $setting, $index)
     if($index == 1){
         if(is_front_page() && (!is_spring_application_period() && !is_fall_application_period())) {
             $button['class'] = $button['class'] . ' array-hidden';
+        } else {
+            $button['class'] = str_replace(' array-hidden', '', $button['class']);
         }
     }
 
