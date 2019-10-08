@@ -5,7 +5,7 @@
 }
 
 /* FORMS */
-.gf_progressbar {
+.gf_progressbar_wrapper .gf_progressbar {
     border-radius: 0px;
 }
 
