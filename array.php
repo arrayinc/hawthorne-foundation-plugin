@@ -10,6 +10,9 @@ Text Domain: arrayschool
 */
 
 $plugin_init = require_once __DIR__ . '/includes/class-array-membership-types.php';
+require_once __DIR__ . '/includes/class-application-dates.php';
+require_once __DIR__ . '/includes/class-null-application-dates.php';
+require_once __DIR__ . '/includes/interface-application-dates.php';
 
 register_activation_hook(__FILE__, array(get_class($plugin_init), 'init'));
 register_deactivation_hook(__FILE__, array(get_class($plugin_init), 'deinit'));
@@ -32,26 +35,12 @@ function array_print_header_content_subtitle()
     materialis_print_header_subtitle();
     $subtitle = ob_get_clean();
     if(is_front_page() && (is_spring_application_period() || is_fall_application_period())) {
-        $begin_date = false;
-        $end_date = false;
-        $period = is_spring_application_period() ? 
-            'spring_application_date_' :
-            'fall_application_date_';
-        $date_string = '';
+        $dates = is_spring_application_period() ? 
+            get_spring_application_dates() :
+            get_fall_application_dates();
 
-        $begin_date_string = get_option("{$period}start", false);
-        $begin_date =  $begin_date_string !== false ?
-            new DateTime($begin_date_string) :
-            false;
-        $end_date_string = get_option("{$period}end", false);
-        $end_date =  $end_date_string !== false ?
-            new DateTime($end_date_string) :
-            false;
-
-        if ($begin_date && $end_date){
-            $date_string = "Application Period: {$begin_date->format('F j')} - {$end_date->format('F j')}";
-            $subtitle = "<p class=\"header-subtitle\">{$date_string}</p>";
-        }
+        $date_string = "Application Period: {$dates->format_begin_date('F j')} - {$dates->format_end_date('F j')}";
+        $subtitle = "<p class=\"header-subtitle\">{$date_string}</p>";
         
     }
 
@@ -107,6 +96,44 @@ function is_fall_application_period()
         }
     }
     return $return_value_fall;
+}
+
+function get_spring_application_dates() : IApplicationDates
+{
+    $begin_date_string = get_option("spring_application_date_start", false);
+    $begin_date =  $begin_date_string !== false ?
+        new DateTime($begin_date_string) :
+        false;
+    $end_date_string = get_option("spring_application_date_end", false);
+    $end_date =  $end_date_string !== false ?
+        new DateTime($end_date_string) :
+        false;
+
+    $dates = new NullApplicationDates();
+    if ($begin_date !== false && $end_date !== false) {
+        $dates = new ApplicationDates($begin_date, $end_date);
+    }
+
+    return $dates;
+}
+
+function get_fall_application_dates() : IApplicationDates
+{
+    $begin_date_string = get_option("fall_application_date_start", false);
+    $begin_date =  $begin_date_string !== false ?
+        new DateTime($begin_date_string) :
+        false;
+    $end_date_string = get_option("fall_application_date_end", false);
+    $end_date =  $end_date_string !== false ?
+        new DateTime($end_date_string) :
+        false;
+    
+    $dates = new NullApplicationDates();
+    if ($begin_date !== false && $begin_date !== false) {
+        $dates = new ApplicationDates($begin_date, $end_date);
+    }
+
+    return $dates;
 }
 
 
@@ -238,6 +265,23 @@ function restrict_content_shortcode($atts, $content = '')
 
     return do_shortcode($content);
 
+}
+
+add_shortcode('show_if_application_period', 'show_if_application_period', 10, 2);
+function show_if_application_period($atts, $content)
+{
+    if (!is_spring_application_period() && !is_fall_application_period()) {
+        $spring_dates = get_spring_application_dates();
+        $fall_dates = get_fall_application_dates();
+        $content = sprintf('This content is only available from %1$s - %2$s and %3$s - %4$s',
+            $spring_dates->format_begin_date('F j'),
+            $spring_dates->format_end_date('F j'),
+            $fall_dates->format_begin_date('F j'),
+            $fall_dates->format_end_date('F j')
+        );
+    }
+
+    return do_shortcode($content);
 }
 
 /* ------------- GRAVITY FORMS MODS -------------*/
