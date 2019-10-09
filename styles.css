@@ -45,7 +45,9 @@
     padding: 9px;
 }
 
-.address_country select, .ginput_container input:not([type=submit]):not([type=checkbox]):not([type=file]),
+.address_country select,
+.address_state select,
+.ginput_container input:not([type=submit]):not([type=checkbox]):not([type=file]),
 #loginform input:not(.button) {
     background-color: rgba(0,0,0,.01);
     border: solid 1px #CCCCCC;
@@ -54,6 +56,7 @@
 .ginput_container_fileupload input[type=file] {
     border-bottom: none !important;
 }
+
 
 select {
     padding: 6px !important;
