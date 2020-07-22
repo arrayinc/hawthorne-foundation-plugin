@@ -33,8 +33,7 @@ ob_start(); ?>
             <td>Your user role has been changed!</td>
         </tr>
         <tr>
-            <td>To fill out a Supplemental Application please visit | </td>
-            <td><a href="https://thehawthornfoundation.org/supplemental-scholarship-application/">The Supplemental Application Page</a></td>
+            <td>To fill out a Supplemental Application please visit <a href="https://thehawthornfoundation.org/supplemental-scholarship-application/">The Supplemental Application Page</a></td>
         </tr>
     </table>
 </body>
