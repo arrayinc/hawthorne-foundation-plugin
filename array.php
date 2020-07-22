@@ -526,9 +526,8 @@ function add_date_scholarship_awarded($user_id, $role, $old_role)
     }
 
     $user = get_userdata( $user_id );
-    $user_email = $user->user_mail;
     $message = require_once __DIR__ . '/email-templates/role-change.php';
-    $sent = wp_mail( $user_email, "Your Role at HawthornFoundation.org has been changed", $message, 'Content-Type: application/html');
+    $sent = wp_mail( $user->user_email, "Your Role at HawthornFoundation.org has been changed", $message, 'Content-Type: application/html');
     error_log('message status is' . $sent ? 'yes': 'no');
     update_user_meta($user_id, 'date_scholarship_awarded', current_time('mysql'));
 }
